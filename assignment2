@@ -1,0 +1,149 @@
+//installing all the packings
+
+const express = require("express");
+const { open } = require("sqlite");
+const sqlite3 = require("sqlite3");
+const path = require("path");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
+
+//opening connection with db and stating the server by giving the prot number and middle ware function to handle the json objects it is the builtin middleware
+//function in express server to handle json object and it invoke the succeeding function handler or any middleware
+
+let DBpath = path.join(__dirname, "twitterClone.db"); //creating the path of database it open the connection with this database
+let app = express();
+app.use(express.json()); //middleware function to handle the json object it will parse and call the next function
+let db = null; //when we open the connection with db it wil return the promise object to store the we inistiaize the db with null
+
+let initialize = async () => {
+  //we are keeping this code try and catch to handle exception they may raise the exceptions
+  try {
+    db = await open({
+      filename: DBpath,
+      driver: sqlite3.Database,
+    }); //this will return the promise object so it is asyncrinys operation
+
+    app.listen(3000, () => {
+      console.log("server is started...");
+    });
+  } catch (err) {
+    console.log(err.message);
+    process.exit(1);
+  }
+};
+initialize();
+
+//middleware function to check authorization
+
+let Authorization = (request, response, next) => {
+  let { authorization } = request.headers;
+  jwt.verify(authorization, "secrete_access_token", (error, user) => {
+    if (error) {
+      response.send(401);
+      response.send("Invalid JWT Token");
+    } else {
+      request.username = user.username;
+      console.log(request);
+      next();
+    }
+  });
+};
+
+//api  for registration
+
+app.post("/register", async (request, response) => {
+  try {
+    let { username, password, name, gender } = request.body;
+    let checkingQuery = `select 
+    * from user 
+    WHERE username = '${username}'`;
+    let prom = await db.get(checkingQuery);
+    if (prom === undefined) {
+      if (password.length >= 6) {
+        let pass = await bcrypt.hash(password, 10);
+        console.log(pass);
+        let query = `INSERT INTO user 
+        (username, password, name, gender)
+        VALUES ('${username}', '${pass}', '${name}', '${gender}');`;
+        let prom = await db.run(query);
+        response.send("User created successfully");
+      } else {
+        response.status(400);
+        response.send("Password is too short");
+      }
+    } else {
+      response.status(400);
+      response.send("User already exists");
+    }
+  } catch (err) {
+    console.log(err.message);
+  }
+});
+
+//api for login
+
+app.post("/login/", async (request, response) => {
+  try {
+    let { username, password } = request.body;
+    let queryCheck = `select * 
+        from user 
+        where username = '${username}';`;
+    let prom = await db.get(queryCheck);
+    if (prom !== undefined) {
+      let idValid = await bcrypt.compare(password, prom.password);
+      if (idValid) {
+        let token = await jwt.sign(
+          { username: username },
+          "secrete_access_token"
+        );
+        response.send({ jwtToken: token });
+      } else {
+        response.status(400);
+        response.send("Invalid password");
+      }
+    } else {
+      response.status(400);
+      response.send("Invalid user");
+    }
+  } catch (err) {
+    console.log(err.message);
+  }
+});
+
+//api to get tweets of users who followed by specific user
+
+app.get("/user/tweets/feed/", Authorization, async (request, response) => {
+  try {
+    let { username } = request;
+    //console.log(username);
+    let query = ` 
+    SELECT user.username as username, 
+    tweet.tweet as tweet,
+    tweet.date_time as dateTime
+    FROM user INNER JOIN follower ON user.user_id	= follower.follower_user_id	 
+    INNER JOIN tweet ON follower.following_user_id = tweet.user_id
+    WHERE username = '${username}'
+    ORDER BY CAST(strftime("%Y", date_time) AS INT) DESC,
+    CAST(strftime("%m", date_time) AS INT) DESC,
+    CAST(strftime("%d", date_time) AS INT) DESC,
+    CAST(strftime("%H", date_time) AS INT) DESC,
+    CAST(strftime("%M", date_time) AS INT) DESC,
+    CAST(strftime("%s", date_time) AS INT) DESC
+    LIMIT 4
+    ;`;
+    let prom = await db.all(query);
+    response.send(prom);
+  } catch (err) {
+    console.log(err.message);
+  }
+});
+
+//getting the user follows
+
+app.get("/user/following/", Authorization, async (request, response) => {
+  try {
+    let { username } = request;
+    let query = `select *
+        from `;
+  }
+});
