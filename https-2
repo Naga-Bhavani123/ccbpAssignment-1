@@ -21,4 +21,14 @@ Content-Type: application/json
 ###
 
 GET  http://localhost:3000/user/tweets/feed/ 
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTExNDEyfQ.ir8X6bxswVfMiCwlzNzFnbQgAyTUOs4hTXoFI32F1K4
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+
+###
+
+GET  http://localhost:3000/user/following/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+
+###
+
+GET  http://localhost:3000/user/followers/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
