@@ -43,7 +43,7 @@ let Authorization = (request, response, next) => {
       response.send("Invalid JWT Token");
     } else {
       request.username = user.username;
-      console.log(request);
+      //console.log(request);
       next();
     }
   });
@@ -120,16 +120,17 @@ app.get("/user/tweets/feed/", Authorization, async (request, response) => {
     SELECT user.username as username, 
     tweet.tweet as tweet,
     tweet.date_time as dateTime
-    FROM user INNER JOIN follower ON user.user_id	= follower.follower_user_id	 
-    INNER JOIN tweet ON follower.following_user_id = tweet.user_id
-    WHERE username = '${username}'
+    FROM user INNER JOIN tweet ON user.user_id = tweet.user_id
+    WHERE user.user_id IN (SELECT follower.following_user_id
+        FROM user inner join follower ON user.user_id = follower.follower_user_id
+        WHERE user.username = '${username}')
+    
     ORDER BY CAST(strftime("%Y", date_time) AS INT) DESC,
     CAST(strftime("%m", date_time) AS INT) DESC,
     CAST(strftime("%d", date_time) AS INT) DESC,
     CAST(strftime("%H", date_time) AS INT) DESC,
     CAST(strftime("%M", date_time) AS INT) DESC,
     CAST(strftime("%s", date_time) AS INT) DESC
-    LIMIT 4
     ;`;
     let prom = await db.all(query);
     response.send(prom);
@@ -138,12 +139,41 @@ app.get("/user/tweets/feed/", Authorization, async (request, response) => {
   }
 });
 
-//getting the user follows
+//getting the user following names
 
 app.get("/user/following/", Authorization, async (request, response) => {
   try {
     let { username } = request;
-    let query = `select *
-        from `;
+    let query = `select name
+        from user
+        WHERE user_id IN (select follower.following_user_id
+            FROM user INNER JOIN follower ON user.user_id = follower.follower_user_id
+             WHERE user.username = '${username}')`;
+
+    let prom = await db.all(query);
+    response.send(prom);
+  } catch (err) {
+    console.log(err.message);
   }
 });
+
+//getting the followers
+
+app.get("/user/followers/", Authorization, async (request, response) => {
+  try {
+    let { username } = request;
+    let query = `SELECT 
+        name 
+        FROM user 
+        WHERE user_id IN (SELECT 
+            follower.follower_user_id
+            FROM user INNER JOIN follower ON user.user_id = follower.following_user_id
+            WHERE user.username = '${username}')`;
+    let prom = await db.all(query);
+    response.send(prom);
+  } catch (err) {
+    console.log(err.message);
+  }
+});
+
+//
