@@ -220,4 +220,118 @@ app.get("/tweets/:tweetId/", Authorization, async (request, response) => {
   }
 });
 
+app.get("/tweets/:tweetId/likes/", Authorization, async (request, response) => {
+  try {
+    let { username } = request;
+    let { tweetId } = request.params;
+    let response_query = `SELECT 
+     user.name as name
+     FROM tweet INNER JOIN like ON tweet.tweet_id = like.tweet_id INNER JOIN 
+     user ON like.user_id = user.user_id 
+     WHERE tweet.tweet_id = ${tweetId}`;
+    let responseObj = await db.all(response_query);
 
+    let following_Id_query = `SELECT 
+     tweet.tweet_id as id
+     FROM user INNER JOIN follower ON user.user_id = follower.follower_user_id INNER JOIN tweet 
+     ON follower.following_user_id = tweet.user_id
+     WHERE user.username = '${username}'`;
+    let prom = await db.all(following_Id_query);
+    console.log(prom);
+    let id = prom.find((obj) => {
+      return obj.id === parseInt(tweetId);
+    });
+    if (id === undefined) {
+      response.status(401);
+      response.send("Invalid Request");
+    } else {
+      let ara = responseObj.map((obj) => {
+        return obj.name;
+      });
+      response.send({ likes: ara });
+    }
+  } catch (err) {
+    console.log(err.message);
+  }
+});
+
+app.get(
+  "/tweets/:tweetId/replies/",
+  Authorization,
+  async (request, response) => {
+    try {
+      let { username } = request;
+      let { tweetId } = request.params;
+      let query_response = `SELECT 
+       user.name as name,
+       reply.reply as reply
+       FROM reply INNER JOIN user on reply.user_id = user.user_id 
+       where reply.tweet_id = ${tweetId}
+       `;
+
+      let responseOBJ = await db.all(query_response);
+
+      let following_ids = `SELECT 
+       tweet.tweet_id as id 
+       FROM user inner join follower ON user.user_id = follower.follower_user_id INNER JOIN
+       tweet ON follower.following_user_id = tweet.user_id 
+       WHERE user.username = '${username}'`;
+      let prom = await db.all(following_ids);
+      let id = prom.find((obj) => {
+        return obj.id === parseInt(tweetId);
+      });
+      if (id === undefined) {
+        response.status(401);
+        response.send("Invalid Request");
+      } else {
+        response.send({ replies: responseOBJ });
+      }
+    } catch (err) {
+      console.log(err.message);
+    }
+  }
+);
+
+app.get("/user/tweets/", Authorization, async (request, response) => {
+  try {
+    let { username } = request;
+    let query = `SELECT 
+    user_id,
+    tweet_id
+     FROM tweet 
+    WHERE user_id IN (SELECT 
+       user_id 
+       FROM user 
+       WHERE username = '${username}' )`;
+    let prom = await db.all(query);
+    console.log(prom);
+    let array = [];
+    for (let obj of prom) {
+      let { tweet_id } = obj;
+      let query = `SELECT tweet, 
+        count((SELECT user_id
+            FROM like 
+            WHERE tweet_id = 3)) as likes,
+         COUNT((SELECT user_id
+                FROM reply 
+                WHERE tweet_id = 3)) as reply,
+            date_time as dateTime 
+        FROM tweet 
+        WHERE tweet_id = 3 
+            `;
+      let prom = await db.get(query);
+      array.push(prom);
+    }
+    response.send(array);
+  } catch (err) {
+    console.log(err.message);
+  }
+});
+
+app.get("/tweets/", async (request, response) => {
+  let query = `SELECT user_id
+            FROM like 
+            WHERE tweet_id = 3`;
+  let prom = await db.all(query);
+  response.send(prom);
+});
