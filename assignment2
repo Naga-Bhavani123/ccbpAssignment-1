@@ -36,10 +36,11 @@ initialize();
 //middleware function to check authorization
 
 let Authorization = (request, response, next) => {
-  let { authorization } = request.headers;
-  jwt.verify(authorization, "secrete_access_token", (error, user) => {
+  let authorization = request.headers["authorization"];
+  jwt.verify(authorization, "SECRETE_KEY", (error, user) => {
+    //console.log(error);
     if (error) {
-      response.send(401);
+      response.status(401);
       response.send("Invalid JWT Token");
     } else {
       request.username = user.username;
@@ -92,10 +93,7 @@ app.post("/login/", async (request, response) => {
     if (prom !== undefined) {
       let idValid = await bcrypt.compare(password, prom.password);
       if (idValid) {
-        let token = await jwt.sign(
-          { username: username },
-          "secrete_access_token"
-        );
+        let token = await jwt.sign({ username: username }, "SECRETE_KEY");
         response.send({ jwtToken: token });
       } else {
         response.status(400);
@@ -124,13 +122,8 @@ app.get("/user/tweets/feed/", Authorization, async (request, response) => {
     WHERE user.user_id IN (SELECT follower.following_user_id
         FROM user inner join follower ON user.user_id = follower.follower_user_id
         WHERE user.username = '${username}')
+    LIMIT 4
     
-    ORDER BY CAST(strftime("%Y", date_time) AS INT) DESC,
-    CAST(strftime("%m", date_time) AS INT) DESC,
-    CAST(strftime("%d", date_time) AS INT) DESC,
-    CAST(strftime("%H", date_time) AS INT) DESC,
-    CAST(strftime("%M", date_time) AS INT) DESC,
-    CAST(strftime("%s", date_time) AS INT) DESC
     ;`;
     let prom = await db.all(query);
     response.send(prom);
@@ -185,12 +178,12 @@ app.get("/tweets/:tweetId/", Authorization, async (request, response) => {
     let { tweetId } = request.params;
     let query1 = `SELECT 
          tweet,
-         COUNT((SELECT 
-            tweet_id from like 
-            where tweet_id = ${tweetId})) as likes,
-         COUNT((SELECT 
-            tweet_id FROM reply 
-            WHERE tweet_id = ${tweetId})) AS replies,
+         (SELECT 
+            count(tweet_id) from like 
+            where tweet_id = ${tweetId}) as likes,
+         (SELECT 
+            count(tweet_id) FROM reply 
+            WHERE tweet_id = ${tweetId}) AS replies,
          date_time as dateTime
          FROM tweet 
          WHERE tweet_id = ${tweetId}`;
@@ -203,7 +196,7 @@ app.get("/tweets/:tweetId/", Authorization, async (request, response) => {
         WHERE user.username = '${username}');
         `;
     let prom = await db.all(query2);
-    //console.log(prom);
+    console.log(prom);
     let id = prom.find((obj) => {
       //console.log(typeof tweetId);
       return obj.tweet_id === parseInt(tweetId);
@@ -297,9 +290,9 @@ app.get("/user/tweets/", Authorization, async (request, response) => {
     let { username } = request;
     let query = `SELECT 
     user_id,
-    tweet_id
+    tweet_id as tweetId
      FROM tweet 
-    WHERE user_id IN (SELECT 
+    WHERE user_id = (SELECT 
        user_id 
        FROM user 
        WHERE username = '${username}' )`;
@@ -307,17 +300,17 @@ app.get("/user/tweets/", Authorization, async (request, response) => {
     console.log(prom);
     let array = [];
     for (let obj of prom) {
-      let { tweet_id } = obj;
+      let { tweetId } = obj;
       let query = `SELECT tweet, 
-        count((SELECT user_id
+        (SELECT count(user_id)
             FROM like 
-            WHERE tweet_id = 3)) as likes,
-         COUNT((SELECT user_id
+            WHERE tweet_id = ${tweetId}) as likes,
+         (SELECT count(user_id)
                 FROM reply 
-                WHERE tweet_id = 3)) as reply,
+                WHERE tweet_id = ${tweetId}) as reply,
             date_time as dateTime 
         FROM tweet 
-        WHERE tweet_id = 3 
+        WHERE tweet_id = ${tweetId}
             `;
       let prom = await db.get(query);
       array.push(prom);
@@ -328,10 +321,48 @@ app.get("/user/tweets/", Authorization, async (request, response) => {
   }
 });
 
-app.get("/tweets/", async (request, response) => {
+app.post("/user/tweets/", Authorization, async (request, response) => {
+  let { username } = request;
+  let { tweet } = request.body;
+  console.log(tweet);
+  console.log(username);
   let query = `SELECT user_id
-            FROM like 
-            WHERE tweet_id = 3`;
-  let prom = await db.all(query);
-  response.send(prom);
+            FROM user 
+            WHERE username = '${username}'`;
+  let date = new Date();
+  date = `${date.getFullYear()}-${
+    date.getMonth() + 1
+  }-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
+  console.log(date);
+  //let formatDate = `${date.get}`
+  let { user_id } = await db.get(query);
+  let query1 = `INSERT INTO tweet 
+  (tweet, user_id, date_time)
+  Values ('${tweet}', ${user_id}, '${date}')`;
+  await db.run(query1);
+  response.send("Created a Tweet");
 });
+
+app.delete("/tweets/:tweetId/", Authorization, async (request, response) => {
+  let { username } = request;
+  let { tweetId } = request.params;
+  let query1 = `SELECT tweet.tweet_id as tweetId
+    FROM user INNER JOIN tweet ON user.user_id = tweet.user_id 
+    WHERE username = '${username}'`;
+  let arrayObj = await db.all(query1);
+  console.log(arrayObj);
+  let id = arrayObj.find((obj) => {
+    return obj.tweetId === parseInt(tweetId);
+  });
+  if (id !== undefined) {
+    let query = `DELETE FROM tweet 
+        WHERE tweet_id = ${tweetId};`;
+    await db.run(query);
+    response.send("Tweet Removed");
+  } else {
+    response.status(401);
+    response.send("Invalid Request");
+  }
+});
+
+module.exports = app;
