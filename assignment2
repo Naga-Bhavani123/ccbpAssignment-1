@@ -163,7 +163,7 @@ app.get("/user/followers/", Authorization, async (request, response) => {
   try {
     let { username } = request;
     let query = `SELECT 
-        name 
+        name
         FROM user 
         WHERE user_id IN (SELECT 
             follower.follower_user_id
@@ -176,4 +176,48 @@ app.get("/user/followers/", Authorization, async (request, response) => {
   }
 });
 
-//
+//getting specific tweet
+
+app.get("/tweets/:tweetId/", Authorization, async (request, response) => {
+  try {
+    let { username } = request;
+    //console.log(username);
+    let { tweetId } = request.params;
+    let query1 = `SELECT 
+         tweet,
+         COUNT((SELECT 
+            tweet_id from like 
+            where tweet_id = ${tweetId})) as likes,
+         COUNT((SELECT 
+            tweet_id FROM reply 
+            WHERE tweet_id = ${tweetId})) AS replies,
+         date_time as dateTime
+         FROM tweet 
+         WHERE tweet_id = ${tweetId}`;
+    let responseObj = await db.all(query1);
+    let query2 = ` 
+       SELECT tweet_id
+        FROM tweet 
+        WHERE tweet.user_id IN (SELECT follower.following_user_id
+        FROM user inner join follower ON user.user_id = follower.follower_user_id
+        WHERE user.username = '${username}');
+        `;
+    let prom = await db.all(query2);
+    //console.log(prom);
+    let id = prom.find((obj) => {
+      //console.log(typeof tweetId);
+      return obj.tweet_id === parseInt(tweetId);
+    });
+    //console.log(id);
+    if (id === undefined) {
+      response.status(401);
+      response.send("Invalid Request");
+    } else {
+      response.send(responseObj);
+    }
+  } catch (err) {
+    console.log(err.message);
+  }
+});
+
+
