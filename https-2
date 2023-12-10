@@ -18,17 +18,65 @@ Content-Type: application/json
   "password":"biden@123"
 }
 
+ ORDER BY CAST(strftime("%Y", date_time) AS INT) DESC,
+    CAST(strftime("%m", date_time) AS INT) DESC,
+    CAST(strftime("%d", date_time) AS INT) DESC,
+    CAST(strftime("%H", date_time) AS INT) DESC,
+    CAST(strftime("%M", date_time) AS INT) DESC,
+    CAST(strftime("%s", date_time) AS INT) DESC
+
 ###
 
 GET  http://localhost:3000/user/tweets/feed/ 
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
-
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMjI3NDU4fQ.EOJIimsSENOFmdyZQB9H51soUNuUXQo6PTnJX2gIyUY
 ###
 
 GET  http://localhost:3000/user/following/
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMjI3NDU4fQ.EOJIimsSENOFmdyZQB9H51soUNuUXQo6PTnJX2gIyUY
 
 ###
 
 GET  http://localhost:3000/user/followers/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+###
+GET  http://localhost:3000/tweets/2/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+
+###
+GET  http://localhost:3000/tweets/2/likes/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+
+
+###
+GET  http://localhost:3000/tweets/2/replies/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+
+
+###
+GET  http://localhost:3000/tweets/2/replies/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+
+
+###
+
+GET  http://localhost:3000/user/tweets/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMjI3NDU4fQ.EOJIimsSENOFmdyZQB9H51soUNuUXQo6PTnJX2gIyUY
+
+
+
+###
+POST  http://localhost:3000/user/tweets/
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMjI3NDU4fQ.EOJIimsSENOFmdyZQB9H51soUNuUXQo6PTnJX2gIyUY
+
+{
+   "tweet": "The Mornings..."
+}
+
+###
+GET  http://localhost:3000/tweets/2/likes/
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
+
+###
+DELETE  http://localhost:3000/tweets/3/
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IkpvZUJpZGVuIiwiaWF0IjoxNzAyMTQyMjA4fQ.bW279sg-Jwb-_x2XiHOhyErwWgITRslMXt3HGojgGS4
