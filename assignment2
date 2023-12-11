@@ -37,17 +37,23 @@ initialize();
 
 let Authorization = (request, response, next) => {
   let authorization = request.headers["authorization"];
-  jwt.verify(authorization, "SECRETE_KEY", (error, user) => {
-    //console.log(error);
-    if (error) {
-      response.status(401);
-      response.send("Invalid JWT Token");
-    } else {
-      request.username = user.username;
-      //console.log(request);
-      next();
-    }
-  });
+  if (authorization !== undefined) {
+    authorization = authorization.split(" ")[1];
+    jwt.verify(authorization, "SECRETE_KEY", (error, user) => {
+      //console.log(error);
+      if (error) {
+        response.status(401);
+        response.send("Invalid JWT Token");
+      } else {
+        request.username = user.username;
+        //console.log(request);
+        next();
+      }
+    });
+  } else {
+    response.status(401);
+    response.send("Invalid JWT Token");
+  }
 };
 
 //api  for registration
@@ -117,12 +123,18 @@ app.get("/user/tweets/feed/", Authorization, async (request, response) => {
     let query = ` 
     SELECT user.username as username, 
     tweet.tweet as tweet,
-    tweet.date_time as dateTime
+    CAST(strftime('%Y', tweet.date_time)AS INT )as dateTime
     FROM user INNER JOIN tweet ON user.user_id = tweet.user_id
     WHERE user.user_id IN (SELECT follower.following_user_id
         FROM user inner join follower ON user.user_id = follower.follower_user_id
-        WHERE user.username = '${username}')
-    LIMIT 4
+        WHERE user.username = 'JimCameron')
+    ORDER BY CAST(strftime('%Y', tweet.date_time) AS INT),
+    CAST(strftime('%m', tweet.date_time) AS INT),
+    CAST(strftime('%d', tweet.date_time) AS INT),
+    CAST(strftime('%H', tweet.date_time) AS INT),
+    CAST(strftime('%M', tweet.date_time) AS INT),
+    CAST(strftime('%S', tweet.date_time) AS INT)
+    
     
     ;`;
     let prom = await db.all(query);
@@ -187,7 +199,7 @@ app.get("/tweets/:tweetId/", Authorization, async (request, response) => {
          date_time as dateTime
          FROM tweet 
          WHERE tweet_id = ${tweetId}`;
-    let responseObj = await db.all(query1);
+    let responseObj = await db.get(query1);
     let query2 = ` 
        SELECT tweet_id
         FROM tweet 
@@ -218,7 +230,7 @@ app.get("/tweets/:tweetId/likes/", Authorization, async (request, response) => {
     let { username } = request;
     let { tweetId } = request.params;
     let response_query = `SELECT 
-     user.name as name
+     user.username as name
      FROM tweet INNER JOIN like ON tweet.tweet_id = like.tweet_id INNER JOIN 
      user ON like.user_id = user.user_id 
      WHERE tweet.tweet_id = ${tweetId}`;
@@ -307,7 +319,7 @@ app.get("/user/tweets/", Authorization, async (request, response) => {
             WHERE tweet_id = ${tweetId}) as likes,
          (SELECT count(user_id)
                 FROM reply 
-                WHERE tweet_id = ${tweetId}) as reply,
+                WHERE tweet_id = ${tweetId}) as replies,
             date_time as dateTime 
         FROM tweet 
         WHERE tweet_id = ${tweetId}
@@ -333,12 +345,13 @@ app.post("/user/tweets/", Authorization, async (request, response) => {
   date = `${date.getFullYear()}-${
     date.getMonth() + 1
   }-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`;
-  console.log(date);
+
+  //console.log(date.getHours());
   //let formatDate = `${date.get}`
   let { user_id } = await db.get(query);
   let query1 = `INSERT INTO tweet 
   (tweet, user_id, date_time)
-  Values ('${tweet}', ${user_id}, '${date}')`;
+  Values ('${tweet}', ${user_id}, STRFTIME("%Y-%m-%d %H:%M:%S", ${date})`;
   await db.run(query1);
   response.send("Created a Tweet");
 });
